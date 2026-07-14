@@ -112,6 +112,32 @@ Mostly unnecessary. But in case you need them:
 - `ABLETON_DPI_MODE` `auto` | `preserve` | `100` | `fractional`
 - `ENGINE=docker` for `build.sh` / `make-installer.sh`
 
+### NixOS
+
+NixOS isn't FHS-compliant, so the prebuilt Wine tree (a normal glibc/Ubuntu-22.04-linked
+ELF tree) can't run directly — the dynamic loader path doesn't exist and none of its
+shared libraries live where it expects. This repo ships a `flake.nix` to bridge that:
+
+```bash
+# build.sh/make-installer.sh still build inside podman/docker, unaffected by
+# NixOS's layout — this shell just adds the host tools those scripts shell out to.
+# Enable a container engine system-wide first, e.g. virtualisation.podman.enable = true;
+nix develop
+
+# install.sh / setup-prefix.sh / ableton-live need the runtime libraries the
+# patched Wine, WineASIO, and the XDG file-dialog portal dlopen — this drops
+# you into an FHS-compatible shell that has them, then run the scripts as usual.
+nix run .#fhs
+./scripts/install.sh
+./scripts/setup-prefix.sh
+ableton-live
+```
+
+`nix run .#fhs` only needs to wrap `setup-prefix.sh`/`ableton-live`; `install.sh` just
+unpacks a tarball but is harmless to run inside it too. For audio, make sure
+`services.pipewire.jack.enable = true;` is set so PipeWire's JACK-compatible
+`libjack.so.0` is available to WineASIO.
+
 ### Steam Deck
 
 Desktop Mode only. Add the host packages once, and (unfortunately) again after every SteamOS update.
