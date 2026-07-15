@@ -8,3 +8,4 @@ Path=@HOME@/.wine-ableton/drive_c/ProgramData/Ableton/Live 12 Suite/Program
 Icon=7CC2_Ableton Live 12 Suite.0
 StartupWMClass=ableton live 12 suite.exe
 Categories=AudioVideo;Audio;
+MimeType=application/x-ableton-live-set;application/x-ableton-live-pack;application/x-ableton-live-license;

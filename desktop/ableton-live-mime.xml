@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-ableton-live-set">
+    <comment>Ableton Live Set</comment>
+    <glob pattern="*.als"/>
+  </mime-type>
+  <mime-type type="application/x-ableton-live-pack">
+    <comment>Ableton Live Pack</comment>
+    <glob pattern="*.alp"/>
+  </mime-type>
+  <mime-type type="application/x-ableton-live-license">
+    <comment>Ableton Live authorization file</comment>
+    <glob pattern="*.auz"/>
+  </mime-type>
+</mime-info>

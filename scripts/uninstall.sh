@@ -17,6 +17,18 @@ rm -f  "$APPS/ableton-live.desktop" "$APPS/wine-protocol-ableton.desktop"
 update-desktop-database "$APPS" 2>/dev/null || true
 echo "removed desktop entries"
 
+rm -f "$HOME/.local/share/mime/packages/ableton-live.xml"
+command -v update-mime-database >/dev/null 2>&1 && update-mime-database "$HOME/.local/share/mime" >/dev/null 2>&1
+mimeapps="$HOME/.config/mimeapps.list"
+if [ -f "$mimeapps" ]; then
+    sed -i \
+        -e '/^application\/x-ableton-live-set=ableton-live\.desktop$/d' \
+        -e '/^application\/x-ableton-live-pack=ableton-live\.desktop$/d' \
+        -e '/^application\/x-ableton-live-license=ableton-live\.desktop$/d' \
+        "$mimeapps"
+fi
+echo "removed file associations"
+
 if [ "${1:-}" = "--prefix" ]; then
     pfx="${ABLETON_WINEPREFIX:-$HOME/.wine-ableton}"
     read -rp "Also delete $pfx? This removes your Live installation AND its authorization. [y/N] " a

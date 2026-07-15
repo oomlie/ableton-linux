@@ -23,7 +23,7 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+    (flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         pkgs = import nixpkgs { inherit system; };
       in
@@ -112,5 +112,63 @@
           type = "app";
           program = "${self.packages.${system}.fhs}/bin/ableton-live-fhs";
         };
-      });
+      }))
+    // {
+      # `imports = [ inputs.ableton-linux.nixosModules.default ];` then
+      # `programs.ableton-linux.enable = true;` — bundles the system-level
+      # toggles the README's manual NixOS instructions used to ask for by hand.
+      nixosModules.default = { config, lib, ... }:
+        with lib;
+        let
+          cfg = config.programs.ableton-linux;
+        in
+        {
+          options.programs.ableton-linux = {
+            enable = mkEnableOption "system-level toggles for Ableton Live 12 on patched Wine";
+
+            containerEngine = mkOption {
+              type = types.nullOr (types.enum [ "podman" "docker" ]);
+              default = null;
+              description = ''
+                Enable a container engine for building the patched Wine tree via
+                ./build.sh. Leave null (the default) if you only install prebuilt
+                release tarballs and never build from source.
+              '';
+            };
+
+            realtimeAudio.enable = mkOption {
+              type = types.bool;
+              default = true;
+              description = ''
+                Grant the `audio` group elevated rtprio/memlock/nice PAM limits so
+                the launcher's `chrt -r 10 wine` succeeds instead of silently
+                falling back to non-realtime scheduling. Inert unless your user is
+                actually in the `audio` group.
+              '';
+            };
+          };
+
+          config = mkIf cfg.enable (mkMerge [
+            {
+              # WineASIO -> JACK/PipeWire; the runtime library itself is provided
+              # by packages.fhs, this is what makes the JACK server side exist.
+              services.pipewire.enable = mkDefault true;
+              services.pipewire.jack.enable = mkDefault true;
+            }
+            (mkIf (cfg.containerEngine == "podman") {
+              virtualisation.podman.enable = mkDefault true;
+            })
+            (mkIf (cfg.containerEngine == "docker") {
+              virtualisation.docker.enable = mkDefault true;
+            })
+            (mkIf cfg.realtimeAudio.enable {
+              security.pam.loginLimits = [
+                { domain = "@audio"; item = "rtprio"; type = "-"; value = "99"; }
+                { domain = "@audio"; item = "memlock"; type = "-"; value = "unlimited"; }
+                { domain = "@audio"; item = "nice"; type = "-"; value = "-19"; }
+              ];
+            })
+          ]);
+        };
+    };
 }
