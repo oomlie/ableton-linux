@@ -51,6 +51,10 @@ A few more things to do after you launch for the first time:
 
 WineASIO can be tempermental; If you have any issues with WineASIO, Make a github issue or +1 an existing one and I'll fix as a priority!
 
+`install.sh` also registers `.als` (Live Sets), `.alp` (Live Packs) and `.auz` (license
+files) as file types opened by `ableton-live`, so double-click / "Open With" from your
+file manager works, same as `ableton://` authorization links.
+
 ## Push 1 + 2 support
 
 This is built in. Use Preferences → Link, Tempo & MIDI → exactly one `Push2` row, Live Port for both input and output. Like all other MIDI and Audio devices, Push will survive in-session disconnects. 
@@ -111,6 +115,60 @@ Mostly unnecessary. But in case you need them:
 - `ABLETON_WINEPREFIX` prefix path (default `~/.wine-ableton`)
 - `ABLETON_DPI_MODE` `auto` | `preserve` | `100` | `fractional`
 - `ENGINE=docker` for `build.sh` / `make-installer.sh`
+
+### NixOS
+
+NixOS isn't FHS-compliant, so the prebuilt Wine tree (a normal glibc/Ubuntu-22.04-linked
+ELF tree) can't run directly — the dynamic loader path doesn't exist and none of its
+shared libraries live where it expects. This repo ships a `flake.nix` to bridge that.
+
+If your system config is flake-based, the easiest path is importing the module, which
+bundles the toggles below into one switch:
+
+```nix
+# flake.nix inputs
+inputs.ableton-linux.url = "github:oomlie/ableton-linux";
+
+# system configuration
+imports = [ inputs.ableton-linux.nixosModules.default ];
+programs.ableton-linux.enable = true;
+# programs.ableton-linux.containerEngine = "podman";  # only if you'll run ./build.sh yourself
+```
+
+That enables `services.pipewire.jack.enable` (WineASIO needs PipeWire's JACK-compatible
+`libjack.so.0`) and grants the `audio` group realtime scheduling limits (the launcher
+tries `chrt -r 10 wine`, which otherwise silently falls back to non-realtime). Setting
+`containerEngine` additionally enables `virtualisation.podman.enable` (or `docker`) for
+building the patched Wine tree yourself — leave it unset if you only install prebuilt
+release tarballs.
+
+Without a flake-based system config, set the equivalent options by hand:
+
+```nix
+services.pipewire.enable = true;
+services.pipewire.jack.enable = true;
+virtualisation.podman.enable = true;   # or virtualisation.docker.enable = true;
+```
+
+Either way, then clone this repo somewhere persistent and use it like on any other
+distro:
+
+```bash
+# build.sh/make-installer.sh still build inside podman/docker, unaffected by
+# NixOS's layout — this shell just adds the host tools those scripts shell out to.
+nix develop
+
+# install.sh / setup-prefix.sh / ableton-live need the runtime libraries the
+# patched Wine, WineASIO, and the XDG file-dialog portal dlopen — this drops
+# you into an FHS-compatible shell that has them, then run the scripts as usual.
+nix run .#fhs
+./scripts/install.sh
+./scripts/setup-prefix.sh
+ableton-live
+```
+
+`nix run .#fhs` only needs to wrap `setup-prefix.sh`/`ableton-live`; `install.sh` just
+unpacks a tarball but is harmless to run inside it too.
 
 ### Steam Deck
 

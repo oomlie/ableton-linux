@@ -7,6 +7,9 @@
 # Local scratch
 *.log
 *.tmp
+# nix build result symlinks
+result
+result-*
 # small curated spy outputs/logs in tools/ ARE committed as evidence
 !tools/*.log
 

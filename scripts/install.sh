@@ -129,6 +129,25 @@ for d in ableton-live wine-protocol-ableton; do
 done
 update-desktop-database "$APPS" 2>/dev/null || true
 
+echo "== register .als/.alp/.auz file associations =="
+MIME_DIR="$HOME/.local/share/mime/packages"
+mkdir -p "$MIME_DIR"
+if [ -e "$MIME_DIR/ableton-live.xml" ]; then
+    echo "   preserving existing $MIME_DIR/ableton-live.xml"
+else
+    install -m644 "$root/desktop/ableton-live-mime.xml" "$MIME_DIR/ableton-live.xml"
+fi
+command -v update-mime-database >/dev/null 2>&1 && update-mime-database "$HOME/.local/share/mime" >/dev/null 2>&1
+
+mimeapps="$HOME/.config/mimeapps.list"
+mkdir -p "$(dirname "$mimeapps")"
+[ -e "$mimeapps" ] || printf '[Default Applications]\n' > "$mimeapps"
+grep -q '^\[Default Applications\]' "$mimeapps" || printf '\n[Default Applications]\n' >> "$mimeapps"
+for mt in application/x-ableton-live-set application/x-ableton-live-pack application/x-ableton-live-license; do
+    grep -q "^${mt}=" "$mimeapps" || \
+        sed -i "0,/^\[Default Applications\]/s#^\[Default Applications\]#[Default Applications]\n${mt}=ableton-live.desktop#" "$mimeapps"
+done
+
 case ":$PATH:" in
     *":$BIN:"*) ;;
     *) echo "!! note: $BIN is not on your PATH — add it or call ~/.local/bin/ableton-live directly" ;;
